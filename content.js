@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Vevidental - ASSISTANT PRIVÉ 25
-// @version      23
+// @version      24
 // @updateURL    https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @downloadURL  https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @match        https://www.vevidental.com/*
