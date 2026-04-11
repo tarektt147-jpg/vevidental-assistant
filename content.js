@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Vevidental - ASSISTANT PRIVÉ (V23 LUX)
+// @name         Vevidental - ASSISTANT PRIVÉ 25
 // @version      23
 // @updateURL    https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @downloadURL  https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
