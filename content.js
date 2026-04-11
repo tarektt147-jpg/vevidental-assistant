@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name         Vevidental - ASSISTANT PRIVÉ 25
-// @version      25
+// @name         Vevidental - ASSISTANT PRIVÉ
+// @version      26
 // @updateURL    https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @downloadURL  https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @match        https://www.vevidental.com/*
@@ -9,7 +9,7 @@
 
 (function() {
     'use strict';
-    const INSTANCE_GLOBALE = '__vevidentalAssistantLuxV23Loaded';
+    const INSTANCE_GLOBALE = '__vevidentalAssistantLoaded';
     if (window[INSTANCE_GLOBALE]) return;
     window[INSTANCE_GLOBALE] = true;
 
@@ -332,7 +332,9 @@
                 const fallback = text.match(/([A-Za-zÀ-ü0-9\s\-\.,]{2,}?)\s+-\s+-\s+(?:WHITE|YELLOW|RED|BLUE|GREEN)/i);
                 if (fallback) matchPatient = fallback;
             }
-            const patient = matchPatient ? nettoyer(matchPatient[1]) : "Inconnu";
+            let patient = matchPatient ? nettoyer(matchPatient[1]) : "Inconnu";
+            // Nettoyer date de naissance collée au nom (ex: "Albanese G. 040269")
+            patient = patient.replace(/\s*\d{6,8}\s*$/, '').trim() || patient;
 
             const isChine = isClientChine(client);
             const suffixe = isChine ? "_CH" : "";
@@ -472,8 +474,6 @@
         }
         const font = "'Segoe UI',system-ui,-apple-system,sans-serif";
         const couleurs = ['WHITE','YELLOW','RED','BLUE','GREEN'];
-        const emojis = { WHITE:'\u26AA', YELLOW:'\uD83D\uDFE1', RED:'\uD83D\uDD34', BLUE:'\uD83D\uDD35', GREEN:'\uD83D\uDFE2' };
-
         const container = document.createElement('div');
         container.id = 'v-excel-btn';
         Object.assign(container.style, {
