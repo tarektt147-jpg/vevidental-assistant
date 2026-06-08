@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Vevidental - ASSISTANT PRIVÉ
-// @version      26
+// @version      27
 // @updateURL    https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @downloadURL  https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @match        https://www.vevidental.com/*
@@ -326,7 +326,10 @@
             const client = matchClient ? nettoyer(matchClient[1]) : "Inconnu";
 
             // Patient: regex principale (avec virgule + slash pour noms type "15841, Hilda")
-            let matchPatient = text.match(/Patient\s+([A-Za-zÀ-ü0-9\s\-\.,\/]+?)(?=\s+(?:Âge|\d{2}\/\d{2}\/\d{4}|\-))/i);
+            // S'arrête sur les notes (VIENT/POSE/RDV/POUR LE/LIVR), les libellés de champ
+            // (Travail/Client/Docteur/Boîte) et tout nombre >=6 chiffres, pour ne PAS avaler
+            // une note type "VIENT LE 120626" dans le nom patient.
+            let matchPatient = text.match(/Patient\s+([A-Za-zÀ-ü0-9\s\-\.,\/]+?)(?=\s+(?:Âge|Age|Travail|Client|Docteur|Bo[îi]te|VIENT|POSE|RDV|POUR\s+LE|LIVR|\d{2}\/\d{2}\/\d{4}|\d{6,}|\-))/i);
             // Fallback: chercher le dernier bloc de mots avant "- - COULEUR"
             if (!matchPatient || nettoyer(matchPatient[1]) === "Inconnu") {
                 const fallback = text.match(/([A-Za-zÀ-ü0-9\s\-\.,]{2,}?)\s+-\s+-\s+(?:WHITE|YELLOW|RED|BLUE|GREEN)/i);
