@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Vevidental - ASSISTANT PRIVÉ
-// @version      27
+// @version      28
 // @updateURL    https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @downloadURL  https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @match        https://www.vevidental.com/*
@@ -14,6 +14,7 @@
     window[INSTANCE_GLOBALE] = true;
 
     let alerteEnCours = false;
+    const VERSION_SCRIPT = 28;      // le même numéro que @version : affiché sur le bouton EXCEL
 
     // --- LISTE CLIENTS CHINE ---
     const CLIENTS_CHINE = [
@@ -34,7 +35,152 @@
 
     const JOUR_SEMAINE_TO_BOITE = { 1: 'WHITE', 2: 'YELLOW', 3: 'RED', 4: 'BLUE', 5: 'GREEN' };
 
-    const MOTS_IMPLANT = ['implant', 'implantaat', 'ti-base', 'ti base', 'abutment', 'interface'];
+    // LE CLIP, AVEC LES RÈGLES DE LABCORE (V28, 28/10/2026). Avant, le script avait
+    // les siennes (une ligne de 6 unités, des mots comme « implant », toujours la
+    // veille) et ne disait plus la même couleur que LabCore depuis le 18/10. Les
+    // données ci-dessous sont GÉNÉRÉES depuis LabCore — on ne les recopie jamais à la
+    // main : la même question posée à deux endroits finit par avoir deux réponses.
+    // >>> RÈGLES LABCORE (générées par labcore/tools/gen_regles_script_vevidental.py depuis LabCore 1.8.90 — ne pas modifier à la main)
+    const R = {"labcore":"1.8.90","categories":[["ZIRCONE",["C&B100","C&B102","K&B100","K&B102","|LB007","|LB008"]],["ZIRCONE_INLAY",["C&B1302","C&B1303","C&B1304","C&B1306","K&B903","K&B904","300.030"]],["PILIER_ZR",[]],["EMAX",["C&B200","C&B1305","K&B200"]],["ENAMIC",["C&B300","K&B300","01.EN1E"]],["COCR_COURONNE",["C&B500","K&B500"]],["COCR_INLAY",["C&B501","K&B501"]],["COCR_STRUCTURE",["C&B502","K&B502"]],["TITANE_COURONNE",["C&B600","K&B600"]],["TITANE_INLAY",["C&B601","K&B601"]],["TITANE_STRUCTURE",["C&B602","K&B602"]],["TEMPORAIRE",["C&B400","K&B400","K&B401"]],["TRY_IN",["C&B401"]],["DSD",["C&B901","K&B901","01.031"]],["DSD_SUP",["SUP010","SUP011"]],["DESIGN_TRANSVISSE",["06.0012"]],["PROTHESE_COMPLETE",["PA001","PA002","LP001","LP002"]],["PROTHESE_PARTIELLE",["PA003","LP003"]],["STELLITE",["PA005","LP005"]],["ESSAI_CIRE",["PA004","LP004"]],["3D_PRINT",["3D001","3D002","01.037"]],["SCAN",["|LB006"]],["CIRE",["|LB005"]],["SERVICES_LABO",[]]],"familles":{"ZIRCONE":"FIXE","ZIRCONE_INLAY":"FIXE","PILIER_ZR":"FIXE","EMAX":"FIXE","ENAMIC":"FIXE","COCR_COURONNE":"FIXE","COCR_INLAY":"FIXE","COCR_STRUCTURE":"FIXE","TITANE_COURONNE":"FIXE","TITANE_INLAY":"FIXE","TITANE_STRUCTURE":"FIXE","TEMPORAIRE":"FIXE","TRY_IN":"FIXE","DSD":"FIXE","DSD_SUP":"SERVICES","DESIGN_TRANSVISSE":"SERVICES","PROTHESE_COMPLETE":"AMOVIBLE","PROTHESE_PARTIELLE":"AMOVIBLE","STELLITE":"AMOVIBLE","ESSAI_CIRE":"AMOVIBLE","3D_PRINT":"SERVICES","SCAN":"SERVICES","CIRE":"FIXE","SERVICES_LABO":"SERVICES","AUTRE":"FIXE"},"zircone":["ZIRCONE","ZIRCONE_INLAY","PILIER_ZR"],"ailette":["01.029","300.029"],"ailetteMatieres":["ZIRCONE","EMAX","ENAMIC","COCR_COURONNE","COCR_STRUCTURE","TEMPORAIRE","TRY_IN","TITANE_COURONNE","TITANE_STRUCTURE","CIRE"],"sections":[["COLLAGE",["C&B900","K&B900","01.0011","300.0011"]],["EMBASE",["C&B700","K&B700","01.003","300.69322","172.MPR-TBH1","172.MPR-TBH2","172.MPR-TBH3","172.MPW-TBH1","01.010","01.011","01.015","300.012","300.014","300.022"]],["SUPPLEMENT",[]],["TRANSPORT",["95.200"]],["ANALOGUE",[]]],"prefixesSections":[["TIB","EMBASE"],["SUP","SUPPLEMENT"],["OUT","SUPPLEMENT"],["TR","TRANSPORT"]],"prefixesArticles":["01","300"],"articles2026":{"025":"PROTHESE_COMPLETE","026":"PROTHESE_PARTIELLE","027":"ESSAI_CIRE","028":"CIRE","030":"ZIRCONE_INLAY","031":"DSD","034":"DSD_SUP","035":"DESIGN_TRANSVISSE","037":"3D_PRINT","038":"PILIER_ZR","039":"COCR_STRUCTURE","040":"TITANE_STRUCTURE","041":"TRY_IN","042":"TEMPORAIRE"},"composants2026":{"009":"ANALOGUE","010":"EMBASE","011":"EMBASE","012":"EMBASE","013":"EMBASE","014":"EMBASE","015":"EMBASE","016":"EMBASE","017":"EMBASE","018":"EMBASE","019":"EMBASE","020":"EMBASE","021":"EMBASE","022":"EMBASE","023":"EMBASE","024":"EMBASE","032":"SUPPLEMENT","033":"SUPPLEMENT","036":"SUPPLEMENT","088":"SUPPLEMENT","099":"SUPPLEMENT"},"prefixesAchetes":["172","95"],"suffixesComposants":["0011","003","69322","MPR-","MPW-","TBH"],"suffixesNumeriques":{"002":"EMAX","004":"COCR_COURONNE","005":"COCR_INLAY","69320":"ZIRCONE_INLAY","69321":"EMAX","69323":"ENAMIC","68588":"CIRE"},"suffixesProduits":[["STELLITE","STELLITE"],["INLAYCOMP","ENAMIC"],["CRCOIL","COCR_INLAY"],["CRCO","COCR_COURONNE"],["CADTEMP","TEMPORAIRE"],["ENAMIC","ENAMIC"],["EMAX","EMAX"],["EDMYS","ZIRCONE"],["EDCYS","ZIRCONE"],["ZRMULTI","ZIRCONE"],["ZRIMPLANT","ZIRCONE"],["MODEL","3D_PRINT"],["N-GUARD","PROTHESE_PARTIELLE"]],"codesComposants":["C&B700","K&B700","TIB001","TIB002","TIB003","TIB004","TIB005","TIB006","TIB007","TIB008","TIB009","TIB010","C&B900","K&B900"],"prefixesIgnorer":["SUP","OUT","TR"],"seuilGros":6,"seuilFullArch":12,"clipAvance":1,"clipAvanceGrand":2,"seuilClipGrand":11,"feries":["2026-01-01","2026-04-06","2026-05-01","2026-05-14","2026-05-25","2026-07-21","2026-08-15","2026-11-01","2026-11-11","2026-12-25","2027-01-01","2027-03-29","2027-05-01","2027-05-06","2027-05-17","2027-07-21","2027-08-15","2027-11-01","2027-11-11","2027-12-25","2028-01-01","2028-04-17","2028-05-01","2028-05-25","2028-06-05","2028-07-21","2028-08-15","2028-11-01","2028-11-11","2028-12-25"]};
+    // <<< FIN RÈGLES LABCORE
+
+    const RE_SECTION_PRODUITS = /Produit\s+Unités\s+Dents(.+?)(?:Essayages|Date de finalisation)/is;
+    const RE_DEBUT_PRODUIT = /(?:(?<=\s)|^)([A-Za-z0-9&|.\-]*[A-Za-z][A-Za-z0-9&|.\-]*|\d+\.[\d.]+)\s+-\s/g;
+    const RE_QTE_DENTS = /(?:(?<=\s)|^)(\d+)\s+((?:\d{1,2}(?:-\d{1,2})?)(?:,\d{1,2}(?:-\d{1,2})?)*|-)(?=\s|$)/g;
+    const RE_LIBELLE_EMBASE = /^\s*(?:EMBASE\s+TITANE|TI[\s\-]?BASE)\b/i;
+    const RE_LIBELLE_AILETTE = /\bAILETTE\b.*\bMARYLAND\b/i;
+
+    // Les produits du bon : [code, libellé, unités] — comme `pdf_parser._decouper_produits`.
+    function decouperProduits(section) {
+        const bornes = [...section.matchAll(RE_DEBUT_PRODUIT)].map(m => [m.index, m[1], m.index + m[0].length]);
+        const out = [];
+        bornes.forEach(([debut, code, fin], i) => {
+            const suite = i + 1 < bornes.length ? bornes[i + 1][0] : section.length;
+            const bout = section.slice(fin, suite).trim();
+            const trouve = [...bout.matchAll(RE_QTE_DENTS)].filter(m => dentsPlausibles(m[2]));
+            if (!trouve.length) return;                       // illisible : ignoré, pas deviné
+            const m = trouve[trouve.length - 1];
+            out.push([code, bout.slice(0, m.index).trim(), m[1]]);
+        });
+        return out;
+    }
+    function dentsPlausibles(t) {
+        if (t === '-') return true;
+        const nums = (t.match(/\d{1,2}/g) || []).map(Number);
+        return nums.length > 0 && nums.every(n => n >= 11 && n <= 48);
+    }
+    function article2026(c) {
+        const i = c.indexOf('.');
+        return (i > 0 && R.prefixesArticles.includes(c.slice(0, i))) ? c.slice(i + 1) : null;
+    }
+    // Comme `constants.section_du_code`.
+    function sectionDuCode(code, libelle) {
+        if (!code) return null;
+        const c = String(code).toUpperCase().trim();
+        for (const [section, codes] of R.sections) if (codes.includes(c)) return section;
+        for (const [p, section] of R.prefixesSections) if (c.startsWith(p)) return section;
+        const a = article2026(c);
+        if (a !== null && R.composants2026[a]) return R.composants2026[a];
+        if (libelle && RE_LIBELLE_EMBASE.test(String(libelle))) return 'EMBASE';
+        return null;
+    }
+    // Comme `constants._categorie_depuis_suffixe` : null = composant, false = inconnu.
+    function categorieDepuisSuffixe(suffixe) {
+        const s = suffixe.toUpperCase().trim();
+        if (R.suffixesComposants.some(f => s.startsWith(f) || s === f)) return null;
+        let cle = R.suffixesNumeriques[s];
+        if (!cle) { const p = R.suffixesProduits.find(([frag]) => s.includes(frag)); cle = p && p[1]; }
+        return (cle && R.familles[cle] !== undefined) ? cle : false;
+    }
+    // Comme `constants.get_categorie_from_code` : la catégorie, ou null (pas un élément).
+    function categorieDuCode(code, libelle) {
+        code = code.toUpperCase().trim();
+        for (const [cat, codes] of R.categories) if (codes.includes(code)) return cat;
+        if (R.ailette.includes(code) || (libelle && RE_LIBELLE_AILETTE.test(String(libelle)))) return 'AILETTE_MARYLAND';
+        if (sectionDuCode(code, libelle)) return null;
+        const i = code.indexOf('.');
+        if (i >= 0) {
+            const prefixe = code.slice(0, i), suffixe = code.slice(i + 1);
+            if (/^\d+$/.test(prefixe) && suffixe) {
+                if (R.prefixesAchetes.includes(prefixe)) return null;
+                const cle = R.articles2026[article2026(code)];
+                if (cle) return cle;
+                const res = categorieDepuisSuffixe(suffixe);
+                if (res !== false) return res;
+            }
+        }
+        if (R.codesComposants.includes(code)) return null;
+        if (code.startsWith('TIB')) return null;
+        if (R.prefixesIgnorer.some(p => code.startsWith(p))) return null;
+        if (i < 0) { const res = categorieDepuisSuffixe(code); if (res !== false) return res; }
+        return 'AUTRE';
+    }
+    // Comme `pdf_parser.extraire_elements` + `extraire_composants` : le total d'éléments,
+    // ceux en zircone, et le nombre de collages (= un cas implant).
+    function compterBon(text) {
+        const m = RE_SECTION_PRODUITS.exec(text || '');
+        const zone = m ? m[1] : (text || '');
+        let total = 0, ailettes = 0, collages = 0;
+        const details = {};
+        for (const [code, libelle, unitesTxt] of decouperProduits(zone)) {
+            if (sectionDuCode(code, libelle) === 'COLLAGE') collages += parseInt(unitesTxt, 10) || 0;
+            if (!m) continue;                                 // pas de section produits : 0 élément
+            let unites = parseInt(unitesTxt, 10);
+            let cat = categorieDuCode(code, libelle);
+            if (cat === null) continue;
+            if (cat === 'AILETTE_MARYLAND') { ailettes += unites; continue; }
+            if (cat === 'TEMPORAIRE' && /TRY[\s\-']*IN/i.test(libelle || '')) cat = 'TRY_IN';
+            if (R.familles[cat] === 'AMOVIBLE' && unites > 1) unites = 1;
+            total += unites;
+            details[cat] = (details[cat] || 0) + unites;
+        }
+        if (ailettes) {
+            const cle = R.ailetteMatieres.find(k => details[k]) || 'ZIRCONE';
+            total += ailettes;
+            details[cle] = (details[cle] || 0) + ailettes;
+        }
+        const zircone = R.zircone.reduce((n, k) => n + (details[k] || 0), 0);
+        return { total, zircone, collages };
+    }
+    function isoLocal(d) {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    // Comme `planning._soustraire_jours_ouvres` : sans week-end ni jour férié belge.
+    function reculerJoursOuvres(d, n) {
+        const r = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        while (n > 0) {
+            r.setDate(r.getDate() - 1);
+            if (r.getDay() !== 0 && r.getDay() !== 6 && !R.feries.includes(isoLocal(r))) n--;
+        }
+        return r;
+    }
+    // Comme `planning.calculer_timeline` : clip = implant, ou 6 él. et plus ; 1 jour
+    // d'avance, 2 pour un grand bridge zircone (plus de 10 él.). La couleur est celle
+    // du jour du clip (la sortie moins l'avance, en jours ouvrés).
+    function clipDuBon(text, boite, dateFinalisation) {
+        const c = compterBon(text);
+        const implant = c.collages > 0;
+        const gros = c.total >= R.seuilGros || c.total >= R.seuilFullArch;
+        if (!implant && !gros) return { besoinClips: false, compte: c };
+        const avance = c.zircone >= R.seuilClipGrand ? R.clipAvanceGrand : R.clipAvance;
+        let couleur = null;
+        const md = (dateFinalisation || '').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+        if (md) {
+            const jour = reculerJoursOuvres(new Date(+md[3], +md[2] - 1, +md[1]), avance);
+            couleur = JOUR_SEMAINE_TO_BOITE[jour.getDay()];
+        } else if (BOITE_JOURS[(boite || '').toUpperCase()]) {   // sans date : la boîte
+            couleur = (boite || '').toUpperCase();
+            for (let k = 0; k < avance; k++) couleur = BOITE_JOURS[couleur].precedent;
+        }
+        if (!couleur) return { besoinClips: false, compte: c };
+        const raisons = [];
+        if (implant) raisons.push('Implant');
+        if (gros) raisons.push(`${c.total} él.`);
+        if (avance === R.clipAvanceGrand) raisons.push(`grand bridge zircone : ${avance} jours d'avance`);
+        const info = BOITE_JOURS[couleur];
+        return { besoinClips: true, couleurClips: couleur, jourClips: info.jour, emojiClips: info.emoji,
+                 hexClips: info.couleurHex, raison: raisons.join(' + '), avance, compte: c };
+    }
 
     // --- 1. CHARGEMENT PDF.JS + SHEETJS ---
     const URL_PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
@@ -90,52 +236,7 @@
         return CLIENTS_CHINE.some(c => clientUpper.includes(c.toUpperCase()));
     }
 
-    // --- DÉTECTION IMPLANT / GRAND BRIDGE / COHÉRENCE ---
-    function detecterImplant(text) {
-        const lower = text.toLowerCase();
-        return MOTS_IMPLANT.some(mot => lower.includes(mot));
-    }
-
-    function detecterGrandBridge(text) {
-        // Séparer par lignes/produits et ignorer CADTEMP
-        const lignes = text.split(/(?=[A-Z]&[A-Z]\d|K&B\d)/);
-        for (const ligne of lignes) {
-            if (ligne.toUpperCase().includes('CADTEMP')) continue;
-            const matchUnites = ligne.match(/(\d+)\s+\d[\d,\-]*/);
-            if (matchUnites) {
-                const nb = parseInt(matchUnites[1], 10);
-                if (nb >= 6) return true;
-            }
-        }
-        return false;
-    }
-
-    function getClipsInfo(boite, textProduits) {
-        const boiteUpper = (boite || '').toUpperCase();
-        const info = BOITE_JOURS[boiteUpper];
-        if (!info) return { besoinClips: false };
-
-        const isImplant = detecterImplant(textProduits);
-        const isGrandBridge = detecterGrandBridge(textProduits);
-
-        if (!isImplant && !isGrandBridge) return { besoinClips: false };
-
-        const clipsCouleur = info.precedent;
-        const clipsInfo = BOITE_JOURS[clipsCouleur];
-        const raisons = [];
-        if (isImplant) raisons.push('Implant');
-        if (isGrandBridge) raisons.push('Bridge >= 6 el.');
-
-        return {
-            besoinClips: true,
-            couleurClips: clipsCouleur,
-            jourClips: clipsInfo.jour,
-            emojiClips: clipsInfo.emoji,
-            hexClips: clipsInfo.couleurHex,
-            raison: raisons.join(' + ')
-        };
-    }
-
+    // --- COHÉRENCE BOÎTE / DATE ---
     function verifierCoherenceBoite(boite, dateFinalisation) {
         const boiteUpper = (boite || '').toUpperCase();
         const info = BOITE_JOURS[boiteUpper];
@@ -181,6 +282,47 @@
     function getExcelData(boite) {
         const key = getExcelKey(boite);
         try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; }
+    }
+
+    // LA LISTE GÉNÉRALE, DANS L'ORDRE D'IMPRESSION (V28, 28/10/2026). Tarek : « la liste
+    // des noms de patients, c'est par couleurs ; j'ai besoin d'une liste générale des
+    // bons par ordre d'impression ». LabCore imprime chaque bon dès qu'il le reçoit :
+    // l'ordre des téléchargements EST l'ordre d'impression. Un bon retéléchargé garde
+    // sa première place. Les listes par couleur ne changent pas.
+    function getListeKey() {
+        return `vevidental_liste_${getDateLocaleISO()}`;
+    }
+
+    function getListe() {
+        try { return JSON.parse(localStorage.getItem(getListeKey()) || '[]'); } catch(e) { return []; }
+    }
+
+    function ajouterALaListe(entree) {
+        const liste = getListe();
+        if (entree.id && liste.some(d => d.id === entree.id)) return liste.length;
+        liste.push(Object.assign({ n: liste.length + 1 }, entree));
+        localStorage.setItem(getListeKey(), JSON.stringify(liste));
+        return liste.length;
+    }
+
+    async function genererListeGenerale() {
+        try {
+            await xlsxReadyPromise;
+        } catch (e) {
+            alert("SheetJS n'est pas disponible pour le moment. Réessayez.");
+            return;
+        }
+        const liste = getListe();
+        if (liste.length === 0) return;
+        const jourDe = (c) => (BOITE_JOURS[c] ? `${c} (${BOITE_JOURS[c].jour})` : (c || ''));
+        const aoa = [['N°', 'Heure', 'Patient', 'Client', 'Boîte', 'Clip', 'Chine'],
+                     ...liste.map(e => [e.n, e.heure, e.patient, e.client, jourDe(e.boite),
+                                        e.clip ? jourDe(e.clip) : '', e.chine ? 'Chine' : ''])];
+        const ws = window.XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols'] = [{ wch: 5 }, { wch: 7 }, { wch: 30 }, { wch: 40 }, { wch: 18 }, { wch: 18 }, { wch: 7 }];
+        const wb = window.XLSX.utils.book_new();
+        window.XLSX.utils.book_append_sheet(wb, ws, "Ordre d'impression");
+        window.XLSX.writeFile(wb, `Liste_generale_${getDateLocaleISO()}.xlsx`, { compression: true });
     }
 
     function getTotalAujourdhui() {
@@ -229,6 +371,7 @@
         const today = getDateLocaleISO();
         const couleurs = ['WHITE','YELLOW','RED','BLUE','GREEN'];
         couleurs.forEach(c => localStorage.removeItem(`vevidental_excel_${today}_${c}`));
+        localStorage.removeItem(getListeKey());
         mettreAJourBadge();
     }
 
@@ -236,8 +379,8 @@
         const keys = Object.keys(localStorage);
         const now = new Date();
         keys.forEach(key => {
-            if (!key.startsWith('vevidental_excel_')) return;
-            const m = key.match(/vevidental_excel_(\d{4}-\d{2}-\d{2})_/);
+            if (!key.startsWith('vevidental_excel_') && !key.startsWith('vevidental_liste_')) return;
+            const m = key.match(/^vevidental_(?:excel|liste)_(\d{4}-\d{2}-\d{2})/);
             if (!m) return;
             const diff = (now - new Date(m[1])) / (1000 * 60 * 60 * 24);
             if (diff > 7) localStorage.removeItem(key);
@@ -262,6 +405,8 @@
             });
             const totalBtn = document.getElementById('v-export-all-cnt');
             if (totalBtn) totalBtn.textContent = total;
+            const listeCnt = document.getElementById('v-liste-cnt');
+            if (listeCnt) listeCnt.textContent = getListe().length;
         }
     }
 
@@ -278,7 +423,7 @@
             });
             notification.innerHTML = `
                 <div style="color:#f1c40f; font-weight:bold; margin-bottom:5px;">✨ MISE À JOUR RÉUSSIE</div>
-                <div style="font-size:14px;">N'oubliez pas d'imprimer le Bon de travail.</div>
+                <div style="font-size:14px;">N'oublie pas de télécharger le bon.</div>
                 <button id="n-ok" style="margin-top:10px; background:white; border:none; padding:5px 15px; border-radius:5px; cursor:pointer; font-weight:bold;">COMPRIS</button>
             `;
             document.body.appendChild(notification);
@@ -311,7 +456,9 @@
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Téléchargement impossible (${response.status})`);
             const blob = await response.blob();
-            const pdf = await pdfjsLib.getDocument({data: await blob.arrayBuffer()}).promise;
+            // isEvalSupported : la parade de la faille connue de ce lecteur PDF (CVE-2024-4367) ;
+            // la lecture du texte ne change pas (V28).
+            const pdf = await pdfjsLib.getDocument({data: await blob.arrayBuffer(), isEvalSupported: false}).promise;
             if (!pdf || pdf.numPages < 1) throw new Error('PDF vide ou invalide');
             const content = await (await pdf.getPage(1)).getTextContent();
             const text = content.items.map(item => item.str).join(" ");
@@ -339,6 +486,12 @@
             // Nettoyer date de naissance collée au nom (ex: "Albanese G. 040269")
             patient = patient.replace(/\s*\d{6,8}\s*$/, '').trim() || patient;
 
+            // UNE PHRASE À LA PLACE DU NOM (V28). Le 22/10, le Dr D. écrit une remarque
+            // dans la case patient. Plus de 4 mots = une remarque, pas un nom (la règle de
+            // LabCore, qui reprend alors le patient dans le PDF). On prévient seulement :
+            // le nom du fichier ne change pas.
+            const patientAVerifier = patient.split(/\s+/).filter(w => /[A-Za-zÀ-ü]{2,}/.test(w)).length > 4;
+
             const isChine = isClientChine(client);
             const suffixe = isChine ? "_CH" : "";
 
@@ -350,12 +503,8 @@
             const matchFinalisation = text.match(/Date de finalisation souhait[ée]e?\s+(\d{2}\/\d{2}\/\d{4})/i);
             const dateFinalisation = matchFinalisation ? matchFinalisation[1] : '';
 
-            // Extraire la zone produits pour analyse
-            const zoneProduitsMatch = text.match(/Produit\s+Unit[ée]s\s+Dents\s+([\s\S]*?)(?=Essayages)/i);
-            const texteProduits = zoneProduitsMatch ? zoneProduitsMatch[1] : text;
-
             // --- DÉTECTIONS ---
-            const clips = getClipsInfo(boite, texteProduits);
+            const clips = clipDuBon(text, boite, dateFinalisation);
             const coherence = verifierCoherenceBoite(boite, dateFinalisation);
 
             // --- CONSTRUCTION POPUP GLASSMORPHISM ---
@@ -424,6 +573,7 @@
                             <span style="font-size:12px; opacity:0.5;">${dateFichier}</span>
                         </div>
                         <div style="font-size:18px; font-weight:600; margin-bottom:4px;">${patient}</div>
+                        ${patientAVerifier ? '<div style="font-size:12px; color:#f39c12; margin:-2px 0 4px;">\u26A0\uFE0F Nom du patient inhabituel (une phrase ?) — vérifie sur le bon</div>' : ''}
                         <div style="font-size:13px; opacity:0.8;">${client}</div>
                         ${boitePastille}
                     </div>
@@ -456,6 +606,13 @@
                     accumulerExcel(boite, { patient, client, id: matchID });
                     mettreAJourBadge();
                 }
+
+                // 4. La liste générale, dans l'ordre d'impression (V28)
+                const maintenant = new Date();
+                ajouterALaListe({ id: matchID, patient, client, boite, chine: isChine,
+                                  heure: `${String(maintenant.getHours()).padStart(2, '0')}:${String(maintenant.getMinutes()).padStart(2, '0')}`,
+                                  clip: clips.besoinClips ? clips.couleurClips : '' });
+                mettreAJourBadge();
 
                 fermerPopup();
             };
@@ -495,7 +652,7 @@
             animation: 'v-fadeIn 0.25s ease'
         });
 
-        let menuHTML = '<div style="color:rgba(255,255,255,0.5); font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Export par boîte</div>';
+        let menuHTML = '<div style="color:rgba(255,255,255,0.5); font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Export par boîte · V' + VERSION_SCRIPT + '</div>';
         couleurs.forEach(c => {
             const info = BOITE_JOURS[c];
             menuHTML += `
@@ -511,7 +668,10 @@
                 </div>`;
         });
         menuHTML += `
-            <button id="v-export-all" style="width:100%; margin-top:14px; padding:10px; background:white; color:#1e272e; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; font-family:${font}; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <button id="v-liste-generale" style="width:100%; margin-top:14px; padding:10px; background:#f1c40f; color:#1e272e; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; font-family:${font};">
+                LISTE GÉNÉRALE (<span id="v-liste-cnt">0</span>)
+            </button>
+            <button id="v-export-all" style="width:100%; margin-top:6px; padding:10px; background:white; color:#1e272e; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; font-family:${font}; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
                 EXPORTER TOUT (<span id="v-export-all-cnt">0</span>)
             </button>
             <button id="v-clear-today" style="width:100%; margin-top:6px; padding:8px; background:transparent; color:rgba(255,255,255,0.4); border:1px solid rgba(255,255,255,0.1); border-radius:12px; font-size:11px; cursor:pointer; font-family:${font}; transition:color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">
@@ -534,6 +694,7 @@
             <span style="font-size:13px; font-weight:600; letter-spacing:0.3px;">EXCEL</span>
             <span id="v-excel-badge" style="background:white; color:#1e272e; font-size:12px; font-weight:700; min-width:22px; height:22px; border-radius:11px; display:flex; align-items:center; justify-content:center; padding:0 6px;">0</span>
         `;
+        btn.title = 'Assistant Vevidental V' + VERSION_SCRIPT;
         btn.onmouseover = () => { btn.style.transform = 'scale(1.05)'; };
         btn.onmouseout = () => { btn.style.transform = 'scale(1)'; };
 
@@ -553,6 +714,7 @@
             if (dlBtn) dlBtn.onclick = (e) => { e.stopPropagation(); void genererExcel(c); };
         });
         document.getElementById('v-export-all').onclick = (e) => { e.stopPropagation(); exporterTout(); };
+        document.getElementById('v-liste-generale').onclick = (e) => { e.stopPropagation(); void genererListeGenerale(); };
         document.getElementById('v-clear-today').onclick = (e) => {
             e.stopPropagation();
             if (confirm('Effacer toutes les données Excel d\'aujourd\'hui ?')) {
