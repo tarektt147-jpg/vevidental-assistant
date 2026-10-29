@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Vevidental - ASSISTANT PRIVÉ
-// @version      28
+// @version      29
 // @updateURL    https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @downloadURL  https://raw.githubusercontent.com/tarektt147-jpg/vevidental-assistant/main/content.js
 // @match        https://www.vevidental.com/*
@@ -14,7 +14,7 @@
     window[INSTANCE_GLOBALE] = true;
 
     let alerteEnCours = false;
-    const VERSION_SCRIPT = 28;      // le même numéro que @version : affiché sur le bouton EXCEL
+    const VERSION_SCRIPT = 29;      // le même numéro que @version : affiché sur le bouton EXCEL
 
     // --- LISTE CLIENTS CHINE ---
     const CLIENTS_CHINE = [
@@ -26,11 +26,12 @@
 
     // --- SYSTÈME BOÎTES / JOURS ---
     const BOITE_JOURS = {
-        'WHITE':  { jour: 'Lundi',    precedent: 'GREEN',  emoji: '\u26AA', couleurHex: '#ecf0f1' },
-        'YELLOW': { jour: 'Mardi',    precedent: 'WHITE',  emoji: '\uD83D\uDFE1', couleurHex: '#f1c40f' },
-        'RED':    { jour: 'Mercredi', precedent: 'YELLOW', emoji: '\uD83D\uDD34', couleurHex: '#e74c3c' },
-        'BLUE':   { jour: 'Jeudi',    precedent: 'RED',    emoji: '\uD83D\uDD35', couleurHex: '#3498db' },
-        'GREEN':  { jour: 'Vendredi', precedent: 'BLUE',   emoji: '\uD83D\uDFE2', couleurHex: '#2ecc71' },
+        // nomFr / encre (V29) : la couleur dite comme au labo, et un texte lisible dessus
+        'WHITE':  { jour: 'Lundi',    precedent: 'GREEN',  emoji: '\u26AA', couleurHex: '#ecf0f1', nomFr: 'BLANCHE', encre: '#1e272e' },
+        'YELLOW': { jour: 'Mardi',    precedent: 'WHITE',  emoji: '\uD83D\uDFE1', couleurHex: '#f1c40f', nomFr: 'JAUNE', encre: '#1e272e' },
+        'RED':    { jour: 'Mercredi', precedent: 'YELLOW', emoji: '\uD83D\uDD34', couleurHex: '#e74c3c', nomFr: 'ROUGE', encre: '#ffffff' },
+        'BLUE':   { jour: 'Jeudi',    precedent: 'RED',    emoji: '\uD83D\uDD35', couleurHex: '#3498db', nomFr: 'BLEUE', encre: '#ffffff' },
+        'GREEN':  { jour: 'Vendredi', precedent: 'BLUE',   emoji: '\uD83D\uDFE2', couleurHex: '#2ecc71', nomFr: 'VERTE', encre: '#1e272e' },
     };
 
     const JOUR_SEMAINE_TO_BOITE = { 1: 'WHITE', 2: 'YELLOW', 3: 'RED', 4: 'BLUE', 5: 'GREEN' };
@@ -255,7 +256,7 @@
         const infoAttendue = BOITE_JOURS[boiteAttendue];
         return {
             incoherent: true,
-            message: `Boîte ${boiteUpper} (${info.jour}) mais finalisation un ${infoAttendue.jour} !`,
+            message: `Boîte ${info.nomFr} (${info.jour.toLowerCase()}) mais sortie un ${infoAttendue.jour.toLowerCase()} → vérifie la boîte ou la date de sortie`,
             boiteAttendue: boiteAttendue,
             jourAttendu: infoAttendue.jour
         };
@@ -314,7 +315,7 @@
         }
         const liste = getListe();
         if (liste.length === 0) return;
-        const jourDe = (c) => (BOITE_JOURS[c] ? `${c} (${BOITE_JOURS[c].jour})` : (c || ''));
+        const jourDe = (c) => (BOITE_JOURS[c] ? `${BOITE_JOURS[c].nomFr} (${BOITE_JOURS[c].jour.toLowerCase()})` : (c || ''));
         const aoa = [['N°', 'Heure', 'Patient', 'Client', 'Boîte', 'Clip', 'Chine'],
                      ...liste.map(e => [e.n, e.heure, e.patient, e.client, jourDe(e.boite),
                                         e.clip ? jourDe(e.clip) : '', e.chine ? 'Chine' : ''])];
@@ -410,26 +411,46 @@
         }
     }
 
-    // --- 2. RAPPEL JAUNE (DESIGN LUX) ---
+    // --- 2. RAPPEL APRÈS « CRÉER ET ACCEPTER » (V29) ---
+    // Tarek, 29/10 : « Commande enregistrée », il reste là jusqu'au clic (6 s, c'était
+    // trop court : on le ratait), et un bouton ouvre directement le bon.
+    function trouverLienBon() {
+        return [...document.querySelectorAll('a, button')]
+            .find(el => /^Bon de travail$/i.test((el.textContent || '').replace(/\s+/g, ' ').trim())) || null;
+    }
+
     function afficherRappelSiBesoin() {
-        if (sessionStorage.getItem('rappelImprimer') === 'true') {
-            sessionStorage.removeItem('rappelImprimer');
-            const notification = document.createElement('div');
-            Object.assign(notification.style, {
-                position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
-                backgroundColor: '#1e272e', color: 'white', padding: '15px 25px',
-                borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-                zIndex: '100000', fontFamily: 'sans-serif', border: '1px solid #f1c40f', textAlign: 'center'
-            });
-            notification.innerHTML = `
-                <div style="color:#f1c40f; font-weight:bold; margin-bottom:5px;">✨ MISE À JOUR RÉUSSIE</div>
-                <div style="font-size:14px;">N'oublie pas de télécharger le bon.</div>
-                <button id="n-ok" style="margin-top:10px; background:white; border:none; padding:5px 15px; border-radius:5px; cursor:pointer; font-weight:bold;">COMPRIS</button>
-            `;
-            document.body.appendChild(notification);
-            document.getElementById('n-ok').onclick = () => notification.remove();
-            setTimeout(() => { if(notification) notification.remove(); }, 6000);
-        }
+        if (sessionStorage.getItem('rappelImprimer') !== 'true') return;
+        sessionStorage.removeItem('rappelImprimer');
+        const notification = document.createElement('div');
+        notification.id = 'v-rappel';
+        Object.assign(notification.style, {
+            position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+            backgroundColor: '#1e272e', color: 'white', padding: '16px 26px',
+            borderRadius: '14px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            zIndex: '100000', fontFamily: "'Segoe UI',system-ui,sans-serif", border: '1px solid #2ecc71', textAlign: 'center'
+        });
+        notification.innerHTML = `
+            <div style="color:#2ecc71; font-weight:800; margin-bottom:6px; letter-spacing:0.5px;">✅ COMMANDE ENREGISTRÉE</div>
+            <div style="font-size:15px;">N'oublie pas de télécharger le bon.</div>
+            <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+                <button id="n-dl" style="background:#2ecc71; color:#1e272e; border:none; padding:7px 16px; border-radius:8px; cursor:pointer; font-weight:800;">TÉLÉCHARGER LE BON</button>
+                <button id="n-ok" style="background:transparent; color:white; border:1px solid rgba(255,255,255,0.4); padding:7px 14px; border-radius:8px; cursor:pointer; font-weight:600;">COMPRIS</button>
+            </div>
+            <div id="n-info" style="font-size:12px; color:#f39c12; margin-top:8px; display:none;"></div>`;
+        document.body.appendChild(notification);
+        document.getElementById('n-ok').onclick = () => notification.remove();
+        document.getElementById('n-dl').onclick = () => {
+            const lien = trouverLienBon();
+            if (!lien) {
+                const info = document.getElementById('n-info');
+                info.textContent = "Bouton « Bon de travail » introuvable sur cette page : ouvre la commande, puis clique dessus.";
+                info.style.display = 'block';
+                return;
+            }
+            notification.remove();
+            lien.click();                  // la même fenêtre que le clic de Kathy
+        };
     }
 
     // --- 3. ANALYSE ET INTERFACE ---
@@ -507,83 +528,107 @@
             const clips = clipDuBon(text, boite, dateFinalisation);
             const coherence = verifierCoherenceBoite(boite, dateFinalisation);
 
-            // --- CONSTRUCTION POPUP GLASSMORPHISM ---
-            const boiteCouleur = boiteInfo ? boiteInfo.couleurHex : '#888';
+            // --- CONSTRUCTION POPUP (V29) ---
+            // Tarek, 29/10 : « on peut améliorer le visuel ? ». Ce que Kathy doit savoir
+            // à cet instant passe en premier, en grand : la BOÎTE (en français, avec la
+            // sortie), puis le CLIP, étiqueté, puis la Chine. Le patient et le client
+            // passent dessous. Rien ici ne touche au nom du fichier.
             const font = "'Segoe UI',system-ui,-apple-system,sans-serif";
+            const JOURS_SEMAINE = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+            const mSortie = dateFinalisation.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+            const sortieTxt = mSortie
+                ? `sortie ${JOURS_SEMAINE[new Date(+mSortie[3], +mSortie[2] - 1, +mSortie[1]).getDay()]} ${mSortie[1]}/${mSortie[2]}`
+                : 'date de sortie absente du bon';
+            // le numéro du bon dans la liste du jour (l'ordre d'impression)
+            const dejaVu = getListe().find(e => e.id === matchID);
+            const numero = dejaVu ? dejaVu.n : getListe().length + 1;
 
-            let alertesHTML = '';
-
-            // Bandeau Chine (gros, voyant, en haut)
+            let haut = '';
+            // La Chine, d'abord : elle change tout le reste
             if (isChine) {
-                alertesHTML += `
-                    <div style="background:linear-gradient(135deg,#e67e22,#d35400); color:white; padding:16px 24px; border-radius:16px 16px 0 0; margin:-32px -32px 16px -32px; font-weight:700; animation:v-slideDown 0.4s ease; text-align:center;">
-                        <div style="font-size:36px; margin-bottom:4px;">\uD83C\uDDE8\uD83C\uDDF3</div>
-                        <div style="font-size:20px; letter-spacing:1px; text-transform:uppercase;">CLIENT CHINE</div>
+                haut += `
+                    <div style="background:linear-gradient(135deg,#e67e22,#d35400); color:white; padding:12px 24px; font-weight:800; font-size:20px; letter-spacing:1px; text-align:center;">
+                        🇨🇳 CLIENT CHINE
                     </div>`;
             }
-
-            // Alerte clips
+            // La boîte, en grand
+            const fondBoite = boiteInfo ? boiteInfo.couleurHex : '#7f8c8d';
+            const encreBoite = boiteInfo ? boiteInfo.encre : '#ffffff';
+            haut += `
+                <div style="background:${fondBoite}; color:${encreBoite}; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:12px; text-align:left;">
+                    <div>
+                        <div style="font-size:26px; font-weight:800; letter-spacing:0.5px; line-height:1.1;">BOÎTE ${boiteInfo ? boiteInfo.nomFr : '?'}</div>
+                        <div style="font-size:15px; font-weight:600; margin-top:4px; opacity:0.9;">${sortieTxt}</div>
+                    </div>
+                    <div style="font-size:12px; font-weight:700; padding:6px 10px; border-radius:10px; background:rgba(0,0,0,0.15); white-space:nowrap;">Bon n° ${numero}</div>
+                </div>`;
+            // Le clip, étiqueté
             if (clips.besoinClips) {
-                alertesHTML += `
-                    <div style="background:${clips.hexClips}; color:#000; padding:14px 24px; border-radius:${isChine ? '0' : '16px 16px 0 0'}; margin:${isChine ? '-16px' : '-32px'} -32px 16px -32px; font-weight:600; animation:v-slideDown 0.4s ease;">
-                        <div style="font-size:18px; letter-spacing:0.5px;">${clips.emojiClips} CLIPS ${clips.couleurClips} (${clips.jourClips})</div>
-                        <div style="font-size:12px; margin-top:4px; opacity:0.7;">${clips.raison}</div>
+                const ic = BOITE_JOURS[clips.couleurClips];
+                haut += `
+                    <div style="display:flex; align-items:center; gap:14px; padding:14px 24px; background:rgba(255,255,255,0.08); border-left:8px solid ${clips.hexClips}; text-align:left;">
+                        <span style="display:inline-block; width:30px; height:30px; border-radius:8px; background:${clips.hexClips}; flex:none; box-shadow:0 0 0 2px rgba(255,255,255,0.25);"></span>
+                        <div>
+                            <div style="font-size:18px; font-weight:800;">Clip ${ic.nomFr} · ${ic.jour.toLowerCase()}</div>
+                            <div style="font-size:12px; opacity:0.75; margin-top:2px;">${clips.raison}</div>
+                        </div>
                     </div>`;
             }
-
-            // Alerte incohérence boîte
+            // La boîte ne va pas avec la date : quoi faire
             if (coherence) {
-                const hasAbove = isChine || clips.besoinClips;
-                alertesHTML += `
-                    <div style="background:rgba(231,76,60,0.95); color:white; padding:10px 24px; border-radius:${hasAbove ? '0' : '16px 16px 0 0'}; margin:${hasAbove ? '-16px' : '-32px'} -32px 16px -32px; animation:v-slideDown 0.5s ease;">
-                        <div style="font-size:13px; font-weight:600;">ATTENTION - ${coherence.message}</div>
+                haut += `
+                    <div style="background:rgba(231,76,60,0.95); color:white; padding:10px 24px; font-size:13px; font-weight:600; text-align:left;">
+                        ⚠️ ${coherence.message}
                     </div>`;
             }
-
-            // Pastille boîte
-            const boitePastille = boiteInfo
-                ? `<div style="display:flex; align-items:center; gap:10px; margin-top:10px; padding:8px 12px; background:rgba(255,255,255,0.08); border-radius:10px; border-left:3px solid ${boiteCouleur};">
-                       <span style="display:inline-block; width:28px; height:28px; border-radius:50%; background:${boiteCouleur}; box-shadow:0 0 12px ${boiteCouleur}80;"></span>
-                       <span style="font-size:14px;"><b>${boite}</b> - ${boiteInfo.jour}</span>
-                   </div>`
-                : '';
 
             // Fond et bordure : orange pulsant pour Chine, glass normal sinon
             const popupBg = isChine
-                ? 'background: linear-gradient(135deg, rgba(211,84,0,0.85), rgba(230,126,34,0.75));'
-                : 'background: rgba(30,39,46,0.75);';
+                ? 'background: linear-gradient(135deg, rgba(211,84,0,0.92), rgba(230,126,34,0.85));'
+                : 'background: rgba(30,39,46,0.92);';
             const popupBorder = isChine
                 ? 'border: 2px solid #e67e22; animation: v-fadeIn 0.35s ease, v-chinePulse 2s infinite;'
-                : `border: 1px solid rgba(255,255,255,0.12); ${boiteInfo ? `border-top: 3px solid ${boiteCouleur};` : ''} animation: v-fadeIn 0.35s ease;`;
+                : 'border: 1px solid rgba(255,255,255,0.12); animation: v-fadeIn 0.35s ease;';
+            const touche = (t) => `<span style="font-size:10px; font-weight:600; opacity:0.55; margin-left:8px; padding:1px 5px; border:1px solid currentColor; border-radius:4px;">${t}</span>`;
 
             rideau.innerHTML = `
                 <div style="
                     ${popupBg}
                     backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-                    color:white; padding:32px; border-radius:24px; text-align:center;
-                    font-family:${font}; width:420px; max-width:90vw;
+                    color:white; border-radius:24px; text-align:center;
+                    font-family:${font}; width:440px; max-width:92vw;
                     box-shadow: 0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
                     ${popupBorder}
                     overflow:hidden;
                 ">
-                    ${alertesHTML}
-                    <div style="background:rgba(${isChine ? '0,0,0,0.2' : '255,255,255,0.06'}); padding:16px; border-radius:14px; margin-bottom:20px; text-align:left; font-size:14px; line-height:1.8;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <span style="opacity:0.6; font-size:12px; text-transform:uppercase; letter-spacing:1px;">Bon de travail</span>
-                            <span style="font-size:12px; opacity:0.5;">${dateFichier}</span>
+                    ${haut}
+                    <div style="padding:20px 24px 24px;">
+                        <div style="background:rgba(${isChine ? '0,0,0,0.2' : '255,255,255,0.06'}); padding:14px 16px; border-radius:14px; margin-bottom:20px; text-align:left; line-height:1.6;">
+                            <div style="font-size:16px; font-weight:600;">${patient}</div>
+                            ${patientAVerifier ? '<div style="font-size:12px; color:#f39c12;">⚠️ Nom du patient inhabituel (une phrase ?) — vérifie sur le bon</div>' : ''}
+                            <div style="font-size:13px; opacity:0.8;">${client}</div>
+                            <div style="font-size:11px; opacity:0.5; margin-top:2px;">accepté le ${dateFichier.replace(/-/g, '/')}</div>
+                            ${dejaVu ? `<div style="font-size:12px; color:#f39c12; margin-top:4px;">⚠️ Déjà téléchargé aujourd'hui à ${dejaVu.heure} (bon n° ${dejaVu.n}) — LabCore le verra comme un doublon</div>` : ''}
                         </div>
-                        <div style="font-size:18px; font-weight:600; margin-bottom:4px;">${patient}</div>
-                        ${patientAVerifier ? '<div style="font-size:12px; color:#f39c12; margin:-2px 0 4px;">\u26A0\uFE0F Nom du patient inhabituel (une phrase ?) — vérifie sur le bon</div>' : ''}
-                        <div style="font-size:13px; opacity:0.8;">${client}</div>
-                        ${boitePastille}
-                    </div>
-                    <div style="display:flex; gap:12px; justify-content:center;">
-                        <button id="v-ok" class="v-btn-main" style="background:white; color:#1e272e; border:none; padding:14px 32px; font-weight:700; border-radius:50px; cursor:pointer; font-size:15px; font-family:${font}; transition:all 0.2s ease; letter-spacing:0.3px;">TELECHARGER</button>
-                        <button id="v-no" class="v-btn-cancel" style="background:transparent; color:rgba(255,255,255,0.7); border:1.5px solid rgba(255,255,255,0.25); padding:14px 22px; border-radius:50px; cursor:pointer; font-size:14px; font-family:${font}; transition:all 0.2s ease;">ANNULER</button>
+                        <div style="display:flex; gap:12px; justify-content:center;">
+                            <button id="v-ok" class="v-btn-main" style="background:white; color:#1e272e; border:none; padding:14px 28px; font-weight:700; border-radius:50px; cursor:pointer; font-size:15px; font-family:${font}; transition:all 0.2s ease; letter-spacing:0.3px;">TÉLÉCHARGER${touche('Entrée')}</button>
+                            <button id="v-no" class="v-btn-cancel" style="background:transparent; color:rgba(255,255,255,0.75); border:1.5px solid rgba(255,255,255,0.25); padding:14px 20px; border-radius:50px; cursor:pointer; font-size:14px; font-family:${font}; transition:all 0.2s ease;">ANNULER${touche('Échap')}</button>
+                        </div>
                     </div>
                 </div>`;
 
+            // LE CLAVIER (V29) : Entrée = télécharger, Échap = annuler — un clic de moins
+            // à chaque bon (une cinquantaine par jour).
+            const auClavier = (e) => {
+                if (e.key !== 'Enter' && e.key !== 'Escape') return;
+                e.preventDefault(); e.stopPropagation();
+                const b = document.getElementById(e.key === 'Enter' ? 'v-ok' : 'v-no');
+                if (b) b.click();
+            };
+            document.addEventListener('keydown', auClavier, true);
+
             const fermerPopup = () => {
+                document.removeEventListener('keydown', auClavier, true);
                 rideau.style.opacity = '0';
                 setTimeout(() => { rideau.remove(); alerteEnCours = false; }, 300);
             };
@@ -671,7 +716,7 @@
             <button id="v-liste-generale" style="width:100%; margin-top:14px; padding:10px; background:#f1c40f; color:#1e272e; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; font-family:${font};">
                 LISTE GÉNÉRALE (<span id="v-liste-cnt">0</span>)
             </button>
-            <button id="v-export-all" style="width:100%; margin-top:6px; padding:10px; background:white; color:#1e272e; border:none; border-radius:12px; font-weight:700; font-size:13px; cursor:pointer; font-family:${font}; transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+            <button id="v-export-all" style="width:100%; margin-top:6px; padding:9px; background:transparent; color:white; border:1px solid rgba(255,255,255,0.35); border-radius:12px; font-weight:600; font-size:12px; cursor:pointer; font-family:${font};">
                 EXPORTER TOUT (<span id="v-export-all-cnt">0</span>)
             </button>
             <button id="v-clear-today" style="width:100%; margin-top:6px; padding:8px; background:transparent; color:rgba(255,255,255,0.4); border:1px solid rgba(255,255,255,0.1); border-radius:12px; font-size:11px; cursor:pointer; font-family:${font}; transition:color 0.2s;" onmouseover="this.style.color='rgba(255,255,255,0.7)'" onmouseout="this.style.color='rgba(255,255,255,0.4)'">
@@ -703,6 +748,13 @@
             menuOuvert = !menuOuvert;
             menu.style.display = menuOuvert ? 'block' : 'none';
         };
+        // un clic ailleurs referme le menu (V29)
+        document.addEventListener('click', (e) => {
+            if (menuOuvert && !container.contains(e.target)) {
+                menuOuvert = false;
+                menu.style.display = 'none';
+            }
+        });
 
         container.appendChild(menu);
         container.appendChild(btn);

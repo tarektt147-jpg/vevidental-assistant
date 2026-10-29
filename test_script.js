@@ -1,6 +1,6 @@
-// V28 — LE CLIP DE LABCORE, LA LISTE GÉNÉRALE, LE RAPPEL (28/10/2026)
+// LE SCRIPT — V28 (clip de LabCore, liste générale, rappel) + V29 (le visuel)
 //
-//   node test_v28.js
+//   node test_script.js
 //
 // Ce test EXÉCUTE les vraies fonctions de content.js sur des bons inventés (aucun
 // patient réel). La comparaison avec LabCore sur les vrais bons se fait à part, sur
@@ -61,7 +61,7 @@ const L = new Function('BOITE_JOURS', 'xlsxReadyPromise',
   tr('    function getDateLocaleISO()', '    function nettoyer(t)')
   + tr('    // LA LISTE GÉNÉRALE', '    function getTotalAujourdhui()')
   + '\nreturn { ajouterALaListe, getListe, genererListeGenerale };')(
-  { WHITE: { jour: 'Lundi' }, BLUE: { jour: 'Jeudi' }, RED: { jour: 'Mercredi' } }, Promise.resolve());
+  { WHITE: { jour: 'Lundi', nomFr: 'BLANCHE' }, BLUE: { jour: 'Jeudi', nomFr: 'BLEUE' }, RED: { jour: 'Mercredi', nomFr: 'ROUGE' } }, Promise.resolve());
 L.ajouterALaListe({ id: 'A', patient: 'P1', client: 'C1', boite: 'BLUE', heure: '08:01', clip: 'RED', chine: false });
 L.ajouterALaListe({ id: 'B', patient: 'P2', client: 'C2', boite: 'WHITE', heure: '08:05', clip: '', chine: true });
 L.ajouterALaListe({ id: 'A', patient: 'P1', client: 'C1', boite: 'BLUE', heure: '09:30', clip: 'RED', chine: false });
@@ -70,8 +70,8 @@ check('deux bons, le retéléchargé garde sa place', L.getListe().map(e => e.n 
   await L.genererListeGenerale();
   check('l\'Excel : N°, Heure, Patient, Client, Boîte, Clip, Chine',
         feuille && feuille[0].join('|') === 'N°|Heure|Patient|Client|Boîte|Clip|Chine', feuille && feuille[0].join('|'));
-  check('… une ligne par bon, dans l\'ordre', feuille && feuille[1].join('|') === '1|08:01|P1|C1|BLUE (Jeudi)|RED (Mercredi)|'
-        && feuille[2].join('|') === '2|08:05|P2|C2|WHITE (Lundi)||Chine', feuille && feuille.slice(1).map(r => r.join('|')).join(' / '));
+  check('… une ligne par bon, dans l\'ordre', feuille && feuille[1].join('|') === '1|08:01|P1|C1|BLEUE (jeudi)|ROUGE (mercredi)|'
+        && feuille[2].join('|') === '2|08:05|P2|C2|BLANCHE (lundi)||Chine', feuille && feuille.slice(1).map(r => r.join('|')).join(' / '));
   check('… nommé Liste_generale_<date>.xlsx', feuille && /^Liste_generale_\d{4}-\d{2}-\d{2}\.xlsx$/.test(feuille.nom));
   check('le bouton est dans le menu, et « Effacer aujourd\'hui » vide aussi la liste',
         /id="v-liste-generale"/.test(JS) && /localStorage\.removeItem\(getListeKey\(\)\)/.test(JS));
@@ -83,6 +83,18 @@ check('deux bons, le retéléchargé garde sa place', L.getListe().map(e => e.n 
   check('la parade du lecteur PDF est posée', /getDocument\(\{data: await blob\.arrayBuffer\(\), isEvalSupported: false\}\)/.test(JS));
   check('le nom du fichier n\'a pas changé', JS.includes('link.download = `${dateFichier}_${matchID}_${client}_${patient}${suffixe}.pdf`;'));
   check('les règles viennent de LabCore (bloc généré)', /\/\/ >>> RÈGLES LABCORE \(générées[\s\S]*const R = \{[\s\S]*\/\/ <<< FIN RÈGLES LABCORE/.test(JS));
+
+  console.log('⑥ V29 : le visuel (Tarek, 29/10)');
+  check('les couleurs en français', /nomFr: 'BLANCHE'/.test(JS) && /nomFr: 'BLEUE'/.test(JS) && /BOÎTE \$\{boiteInfo \? boiteInfo\.nomFr/.test(JS));
+  check('la sortie est écrite (« sortie jeudi 29/10 »)', /const sortieTxt = mSortie/.test(JS));
+  check('le clip est étiqueté « Clip ROUGE · mercredi »', /Clip \$\{ic\.nomFr\} · \$\{ic\.jour\.toLowerCase\(\)\}/.test(JS));
+  check('l\'incohérence dit quoi faire', JS.includes('→ vérifie la boîte ou la date de sortie'));
+  check('TÉLÉCHARGER avec l\'accent, Entrée / Échap', JS.includes('TÉLÉCHARGER${touche(\'Entrée\')}') && JS.includes("addEventListener('keydown', auClavier, true)")
+        && JS.includes("removeEventListener('keydown', auClavier, true)"));
+  check('le rappel : « COMMANDE ENREGISTRÉE », plus de fermeture toute seule, bouton « Télécharger le bon »',
+        JS.includes('COMMANDE ENREGISTRÉE') && !/setTimeout\(\(\) => \{ if\(notification\)/.test(JS) && JS.includes('id="n-dl"'));
+  check('le menu se ferme au clic à côté', /if \(menuOuvert && !container\.contains\(e\.target\)\)/.test(JS));
+  check('le numéro du bon du jour', /Bon n° \$\{numero\}/.test(JS));
 
   console.log(`\n${ok} OK · ${ko} ÉCHEC(S)`);
   process.exit(ko ? 1 : 0);
